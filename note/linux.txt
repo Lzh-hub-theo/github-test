@@ -7,3 +7,105 @@ Shell 常用通配符：
 [c1-c2]			匹配 c1-c2 中的任意单一字符 如：[0-9][a-z]
 {string1,string2,...}	匹配 string1 或 string2 (或更多)其一字符串
 {c1..c2}			匹配 c1-c2 中全部字符 如{1..10}
+
+linux特点与优势：
+开源免费，权限管理严格，支持多人同时操作，高效处理多个任务。
+
+Linux shell 基础操作：
+[Ctrl+c]	 中止
+[Ctrl+a]	 光标到命令行头
+[Ctrl+e]	 光标到命令行尾
+[Ctrl+k]	 从光标处删到行末
+[Alt+Backspace] 	向前删除一个单词
+[Shift+PgUp] 	将终端显示向上滚动
+[Shift+PgDn] 	将终端显示向下滚动
+
+环境变量
+Declare 	创建指定类型的变量
+[var]=[value]	变量赋值(无空格)
+set	显示当前 Shell 所有变量
+env	显示与当前用户相关的环境变量，还可以让命令在指定环境中运行。
+export	显示从 Shell 中导出成环境变量的变量，也能通过它将自定义变量导出为环境变量。
+Unset [var]	删除变量
+
+变量修改
+变量设置方式	说明
+${变量名#匹配字串}	从头向后开始匹配，删除符合匹配字串的最短数据
+${变量名##匹配字串}	从头向后开始匹配，删除符合匹配字串的最长数据
+${变量名%匹配字串}	从尾向前开始匹配，删除符合匹配字串的最短数据
+${变量名%%匹配字串}	从尾向前开始匹配，删除符合匹配字串的最长数据
+${变量名/旧的字串/新的字串}	将符合旧字串的第一个字串替换为新的字串
+${变量名//旧的字串/新的字串}	将符合旧字串的全部字串替换为新的字串
+
+文件系统操作与磁盘管理
+df	查看磁盘的容量
+du	查看目录的容量
+dd if=输入文件 of=输出文件 [选项]	按字节（或块）级别复制、转换和备份数据，
+	输出文件里面的内容会被覆盖!!!
+mkfs	格式化磁盘
+mount 	挂载文件系统(磁盘)到目录树(一切皆文件)
+umount	卸载已挂载的磁盘
+fdisk	磁盘分区
+losetup	建立镜像与回环设备的关联
+kpartx	各分区建立虚拟设备的映射
+
+用户及文件权限管理
+Sudo adduser <user> 	添加用户以及工作目录
+Sudo useradd <user>	只添加用户
+Sudo - <user>	切换用户与环境变量
+Groups <user>	查看用户的用户组
+Sudo usermod -aG <group> <user> 	为用户添加用户组
+sudo deluser lilei --remove-home	删除用户以及用户的工作目录
+Ls -l	查看文件权限
+sudo chown <user> <file>	将文件所有者改为该用户
+Chmod g(group) o(others) u(user)	修改文件权限
+
+linux文件基本操作
+Touch	新建文件
+Mkdir -p	新建文件夹
+cp	复制
+Rm -r	删除
+mv	移动
+rename	批量重命名
+cat	查看文件
+tac	倒序查看
+nl	查看文件
+more	查看文件
+less	查看文件
+Head -n [num] file	查看文件前num行
+Tail -n [num] file	查看文件最后num行
+file	查看文件类型
+Vim 	编辑
+nano 	编辑
+cd	进入目录
+pwd	显示当前目录
+whereis	只能搜索二进制文件（-b），man 帮助文件（-m）和源代码文件（-s）
+Which [cmd]	从PATH中搜索命令来确认[cmd]是否安装
+find	查找文件
+Locate [str]	在系统中快速查找文件路径中包含 [str] 的所有文件或目录
+zip	打包
+unzip 	解包 (-d 指定路径)
+Tar -cf	打包
+Tar -xf	解包 (-C 指定路径)
+
+其他
+Echo [value] >> [file]	追加值到文件中(>表示覆盖)
+[cmd] --help	简单帮助手册
+man	帮助手册
+Info 	详细帮助手册
+help [内置命令]	系统内嵌命令的概要手册
+
+linux定时操作
+Crontab -e	添加计划任务
+Crontab -l	查看任务
+Crontab -r	删除任务
+
+FHS标准
+/etc	设置文件
+/bin,/sbin	可执行文件
+/var/log	系统日志文件
+ /usr/share	放置共享数据
+/etc/group 	用户组文件
+/etc/bashrc	存放shell 变量
+/etc/profile	存放shell环境变量
+
