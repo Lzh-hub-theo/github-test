@@ -1,0 +1,5 @@
+下载claude code: npm install -g @anthropic-ai/claude-code
+下载cc switch来配置claude code的模型提供商
+
+坑：claude code 未登录
+原因：.claude.json下面的hasCompletedOnboarding字段为false
