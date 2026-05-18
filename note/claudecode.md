@@ -17,8 +17,11 @@ code: npm install -g @anthropic-ai/claude-code
 
 > 坑：Error writing file
 
-> 原因：不明确
+> 原因：模型不行导致有时候转换的写入文件的格式不正确
 
+> 坑：1 MCP server failed
+
+> 原因：版本问题
 ---
 
 # 基本操作
