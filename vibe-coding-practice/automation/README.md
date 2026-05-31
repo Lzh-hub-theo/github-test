@@ -1,6 +1,6 @@
 # Macro Recorder - 按键精灵风格自动化脚本工具
 
-录制你的鼠标和键盘操作，自动生成可执行脚本，精确回放所有动作。
+录制你的鼠标和键盘操作，自动生成可执行脚本，精确回放所有动作，支持定时自动执行。
 
 ## 功能概览
 
@@ -9,6 +9,7 @@
 | **录制** | 完整记录鼠标移动、点击、滚轮以及键盘敲击，精确到毫秒级时间间隔 |
 | **生成脚本** | 将录制数据自动转换为可独立运行的 Python 脚本 |
 | **回放** | 按原始时间间隔精确复现所有操作，支持倍速回放 |
+| **定时执行** | 通过 Windows 计划任务，每天定时自动运行生成的脚本 |
 
 ## 环境要求
 
@@ -21,10 +22,10 @@
 pip install pynput
 ```
 
-> 如果使用阿里云镜像加速：
-> ```bash
-> pip install pynput -i https://mirrors.aliyun.com/pypi/simple/
-> ```
+如果使用阿里云镜像加速：
+```bash
+pip install pynput -i https://mirrors.aliyun.com/pypi/simple/
+```
 
 ## 使用方法
 
@@ -152,15 +153,95 @@ python macro_recorder.py list
 
 ---
 
+### 5. 定时执行（scheduler.py）
+
+通过 `scheduler.py` 将生成的脚本注册为 Windows 计划任务，实现每天定时自动运行。
+
+#### 配置任务文件 tasks.txt
+
+在 `tasks.txt` 中添加需要定时执行的命令，每行一条，格式如下：
+
+```
+<python路径> <脚本路径> <hh:mm>
+```
+
+- `hh` 范围：00~23（小时）
+- `mm` 范围：00~59（分钟）
+- 以 `#` 开头的行为注释，空行会被忽略
+
+#### tasks.txt 示例
+
+```
+# 每天早上 6 点执行脚本 A
+E:\LeStoreDownload\python\python.exe E:\Project\automation\scripts\script_20260531_060000.py 06:00
+
+# 每天下午 2 点半执行脚本 B
+E:\LeStoreDownload\python\python.exe E:\Project\automation\scripts\script_20260531_143000.py 14:30
+```
+
+> 每条任务会创建一个独立的 Windows 计划任务（`MacroRecorder_Task_1`、`MacroRecorder_Task_2`...），各自按指定时间触发。
+
+#### scheduler.py 命令
+
+| 命令 | 说明 |
+|------|------|
+| `--setup` | 读取 tasks.txt，为每条任务创建 Windows 计划任务（**需管理员权限**） |
+| `--remove` | 删除所有已注册的计划任务 |
+| `--run` | 立即手动执行 tasks.txt 中的所有命令（用于测试） |
+| `--status` | 查看已注册的计划任务状态和 tasks.txt 中的任务列表 |
+
+#### 示例
+
+```bash
+# 第一步：编辑 tasks.txt，添加命令和执行时间
+
+# 第二步：注册计划任务（需以管理员身份运行）
+python scheduler.py --setup
+
+# 查看计划任务状态
+python scheduler.py --status
+
+# 手动测试执行所有任务（不等待定时触发）
+python scheduler.py --run
+
+# 删除所有计划任务
+python scheduler.py --remove
+```
+
+#### 完整工作流程
+
+```
+1. 录制操作并生成脚本
+   python macro_recorder.py record -g
+
+2. 编辑 tasks.txt，添加生成的脚本命令和执行时间
+   E:\LeStoreDownload\python\python.exe E:\Project\automation\scripts\script_xxx.py 06:00
+
+3. 注册计划任务（管理员权限）
+   python scheduler.py --setup
+
+4. 之后每天 06:00，Windows 会自动执行该脚本
+```
+
+#### 日志
+
+每次执行（无论是定时触发还是手动 `--run`）都会记录日志，保存在 `logs/` 目录下，文件名格式为 `scheduler_YYYYMMDD.log`。
+
+---
+
 ## 目录结构
 
 ```
 automation/
-├── macro_recorder.py          # 主程序
+├── macro_recorder.py          # 主程序（录制/回放/生成脚本）
+├── scheduler.py               # 定时任务调度器
+├── tasks.txt                  # 定时任务配置文件
 ├── recordings/                # 录制数据（JSON 格式）
 │   └── recording_20260531_143000.json
-└── scripts/                   # 生成的可执行脚本
-    └── script_20260531_143000.py
+├── scripts/                   # 生成的可执行脚本
+│   └── script_20260531_143000.py
+└── logs/                      # 定时任务执行日志
+    └── scheduler_20260531.log
 ```
 
 ## 录制数据格式
@@ -201,3 +282,6 @@ automation/
 - 鼠标移动默认以 50ms 间隔采样，可通过 `--move-interval` 调整
 - 如果只需要点击和键盘操作，建议使用 `--no-mouse-move` 减少数据量
 - 生成的脚本依赖 `pynput`，运行前需确保已安装
+- `scheduler.py --setup` 需要以**管理员身份**运行，否则计划任务创建会失败
+- 修改 `tasks.txt` 后需重新执行 `scheduler.py --setup` 才能生效
+- 定时任务执行日志保存在 `logs/` 目录下，可用于排查问题
