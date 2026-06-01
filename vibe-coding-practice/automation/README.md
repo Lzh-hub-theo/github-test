@@ -285,3 +285,12 @@ automation/
 - `scheduler.py --setup` 需要以**管理员身份**运行，否则计划任务创建会失败
 - 修改 `tasks.txt` 后需重新执行 `scheduler.py --setup` 才能生效
 - 定时任务执行日志保存在 `logs/` 目录下，可用于排查问题
+
+## 最佳实践
+
+```bash
+1. python macro_recorder.py record
+2. python macro_recorder.py generate --latest
+3. echo python E:\Project\automation\scripts\script_20260531_204143.py 06:00 >> tasks.txt
+4. python scheduler.py --setup
+```

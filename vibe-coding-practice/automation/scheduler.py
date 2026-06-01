@@ -1,6 +1,6 @@
 """
 Scheduler - 定时任务调度器
-读取 tasks.txt 中的命令和定时时间，为每条任务创建独立的 Windows 计划任务
+读取 tasks.txt 中的命令和定时时间，为每条任务生成 .bat 包装脚本并注册 Windows 计划任务
 tasks.txt 格式: <python路径> <脚本路径> <hh:mm>
 """
 
@@ -14,18 +14,20 @@ from datetime import datetime
 
 TASKS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tasks.txt")
 LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+BAT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bat")
 TASK_PREFIX = "MacroRecorder_Task_"
 
 
-def _ensure_log_dir():
+def _ensure_dirs():
     os.makedirs(LOG_DIR, exist_ok=True)
+    os.makedirs(BAT_DIR, exist_ok=True)
 
 
 def _log(msg):
     ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     line = f"[{ts}] {msg}"
     print(line)
-    _ensure_log_dir()
+    _ensure_dirs()
     log_file = os.path.join(LOG_DIR, datetime.now().strftime("scheduler_%Y%m%d.log"))
     with open(log_file, "a", encoding="utf-8") as f:
         f.write(line + "\n")
@@ -63,15 +65,17 @@ def read_tasks():
 def _get_existing_task_indices():
     result = subprocess.run(
         ["schtasks", "/query", "/fo", "csv", "/nh"],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="gbk", errors="replace",
     )
-    if result.returncode != 0:
+    if result.returncode != 0 or not result.stdout:
         return []
     indices = []
     for row in result.stdout.strip().split("\n"):
-        row = row.strip().strip('"')
-        if row.startswith(TASK_PREFIX):
-            name = row.split(",")[0].strip('"')
+        row = row.strip()
+        if not row:
+            continue
+        name = row.split(",")[0].strip('"').lstrip("\\")
+        if name.startswith(TASK_PREFIX):
             suffix = name[len(TASK_PREFIX):]
             if suffix.isdigit():
                 indices.append(int(suffix))
@@ -82,8 +86,28 @@ def _remove_task_by_index(idx):
     task_name = f"{TASK_PREFIX}{idx}"
     subprocess.run(
         ["schtasks", "/delete", "/tn", task_name, "/f"],
-        capture_output=True,
+        capture_output=True, encoding="gbk", errors="replace",
     )
+    bat_path = os.path.join(BAT_DIR, f"task_{idx}.bat")
+    if os.path.exists(bat_path):
+        os.remove(bat_path)
+
+
+def _create_bat_wrapper(idx, command):
+    _ensure_dirs()
+    bat_path = os.path.join(BAT_DIR, f"task_{idx}.bat")
+    cmd_parts = command.split(None, 1)
+    exe = cmd_parts[0]
+    args = cmd_parts[1] if len(cmd_parts) > 1 else ""
+    exe_dir = os.path.dirname(exe)
+    with open(bat_path, "w", encoding="gbk") as f:
+        f.write("@echo off\n")
+        f.write(f'cd /d "{exe_dir}"\n')
+        if args:
+            f.write(f'"{exe}" {args}\n')
+        else:
+            f.write(f'"{exe}"\n')
+    return bat_path
 
 
 def run_tasks():
@@ -127,6 +151,27 @@ def run_tasks():
     _log("=" * 50)
 
 
+def _create_scheduled_task_ps(task_name, bat_path, time_str):
+    project_dir = os.path.dirname(os.path.abspath(__file__))
+    ps_script = (
+        f'$Action = New-ScheduledTaskAction -Execute "{bat_path}"'
+        f' -WorkingDirectory "{project_dir}"; '
+        f'$Trigger = New-ScheduledTaskTrigger -Daily -At "{time_str}"; '
+        f'$Settings = New-ScheduledTaskSettingsSet'
+        f' -AllowStartIfOnBatteries'
+        f' -DontStopIfGoingOnBatteries'
+        f' -StartWhenAvailable'
+        f' -ExecutionTimeLimit (New-TimeSpan -Hours 72); '
+        f'Register-ScheduledTask -TaskName "{task_name}"'
+        f' -Action $Action -Trigger $Trigger -Settings $Settings -Force'
+    )
+    result = subprocess.run(
+        ["powershell", "-Command", ps_script],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
+    return result
+
+
 def setup_schedule():
     tasks = read_tasks()
     if not tasks:
@@ -144,20 +189,15 @@ def setup_schedule():
         command = task["command"]
         time_str = task["time"]
 
+        bat_path = _create_bat_wrapper(i, command)
+
         _log(f"  [{i}/{len(tasks)}] 任务名: {task_name}")
         _log(f"         执行命令: {command}")
+        _log(f"         包装脚本: {bat_path}")
         _log(f"         触发时间: 每天 {time_str}")
 
-        create_cmd = [
-            "schtasks", "/create",
-            "/tn", task_name,
-            "/tr", command,
-            "/sc", "daily",
-            "/st", time_str,
-            "/f",
-        ]
+        result = _create_scheduled_task_ps(task_name, bat_path, time_str)
 
-        result = subprocess.run(create_cmd, capture_output=True, text=True)
         if result.returncode == 0:
             _log(f"         创建成功")
         else:
@@ -174,14 +214,8 @@ def remove_schedule():
         return
     for idx in sorted(indices):
         task_name = f"{TASK_PREFIX}{idx}"
-        result = subprocess.run(
-            ["schtasks", "/delete", "/tn", task_name, "/f"],
-            capture_output=True, text=True,
-        )
-        if result.returncode == 0:
-            _log(f"已删除: {task_name}")
-        else:
-            _log(f"删除失败: {task_name} - {result.stderr.strip()}")
+        _remove_task_by_index(idx)
+        _log(f"已删除: {task_name}")
     _log(f"共删除 {len(indices)} 个计划任务")
 
 
@@ -193,7 +227,7 @@ def show_status():
             task_name = f"{TASK_PREFIX}{idx}"
             result = subprocess.run(
                 ["schtasks", "/query", "/tn", task_name, "/v", "/fo", "list"],
-                capture_output=True, text=True,
+                capture_output=True, text=True, encoding="gbk", errors="replace",
             )
             if result.returncode == 0:
                 print(result.stdout)

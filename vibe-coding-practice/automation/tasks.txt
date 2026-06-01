@@ -3,4 +3,3 @@
 # hh 范围: 00~23，mm 范围: 00~59
 # 示例:
 # python E:\Project\automation\scripts\script_20260531_204143.py 06:00
-python E:\Project\automation\scripts\script_20260531_204143.py 06:00
