@@ -20,6 +20,11 @@
 - **功能**：图片上传、压缩、对比与下载，支持质量调节、格式转换、批量处理
 - **目录**：`vibe-coding-practice/zip/`
 
+#### 4. AI 对话助手（ai-chat）
+- **技术栈**：Python + FastAPI + LangChain + Vanilla HTML/CSS/JS
+- **功能**：基于大语言模型的多轮对话应用，支持流式响应、上下文记忆、暗色精美聊天界面，兼容任意 OpenAI 风格 API（OpenAI、MiniMax、DeepSeek、本地 Ollama 等）
+- **目录**：`vibe-coding-practice/ai-chat/`
+
 ---
 
 ## 自动化脚本

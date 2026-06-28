@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Chat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+  :root{
+    --bg:#0c0c0e;
+    --surface:#151518;
+    --surface-hover:#1c1c20;
+    --border:#2a2a30;
+    --text:#e8e6e1;
+    --text-muted:#7a7880;
+    --accent:#c9a461;
+    --accent-dim:rgba(201,164,97,.12);
+    --accent-glow:rgba(201,164,97,.25);
+    --user-bg:#1e1d22;
+    --ai-bg:#131216;
+    --radius:14px;
+    --font-display:'Crimson Pro',Georgia,serif;
+    --font-ui:'DM Sans',system-ui,sans-serif;
+  }
+
+  html,body{
+    height:100%;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-ui);
+    font-size:15px;
+    line-height:1.6;
+    overflow:hidden;
+  }
+
+  /* --- Subtle grain overlay --- */
+  body::before{
+    content:'';
+    position:fixed;inset:0;
+    background:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events:none;
+    z-index:9999;
+  }
+
+  /* --- Layout --- */
+  .app{
+    display:flex;flex-direction:column;
+    height:100vh;max-width:820px;
+    margin:0 auto;position:relative;
+  }
+
+  /* --- Header --- */
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:20px 28px;
+    border-bottom:1px solid var(--border);
+    backdrop-filter:blur(12px);
+    background:rgba(12,12,14,.72);
+    position:sticky;top:0;z-index:10;
+  }
+  header h1{
+    font-family:var(--font-display);
+    font-weight:300;font-size:26px;
+    letter-spacing:.02em;
+    color:var(--text);
+  }
+  header h1 span{color:var(--accent);font-style:italic;}
+  .header-status{
+    display:flex;align-items:center;gap:6px;
+    font-size:12px;color:var(--text-muted);
+    letter-spacing:.06em;text-transform:uppercase;
+  }
+  .status-dot{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 6px var(--accent-glow);
+    animation:pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* --- Chat area --- */
+  .chat-area{
+    flex:1;overflow-y:auto;
+    padding:28px 28px 16px;
+    scroll-behavior:smooth;
+  }
+  .chat-area::-webkit-scrollbar{width:4px}
+  .chat-area::-webkit-scrollbar-track{background:transparent}
+  .chat-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+  /* --- Empty state --- */
+  .empty-state{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    height:100%;text-align:center;opacity:.55;
+  }
+  .empty-state .icon{
+    font-size:48px;margin-bottom:16px;
+    color:var(--accent);
+  }
+  .empty-state p{
+    font-family:var(--font-display);
+    font-size:20px;font-weight:300;font-style:italic;
+    color:var(--text-muted);
+  }
+
+  /* --- Messages --- */
+  .message{
+    display:flex;gap:12px;
+    margin-bottom:20px;
+    animation:msgIn .4s cubic-bezier(.22,1,.36,1) both;
+  }
+  @keyframes msgIn{
+    from{opacity:0;transform:translateY(10px)}
+    to{opacity:1;transform:translateY(0)}
+  }
+
+  .message.user{flex-direction:row-reverse}
+
+  .avatar{
+    width:34px;height:34px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;font-weight:600;flex-shrink:0;
+    margin-top:2px;
+  }
+  .message.user .avatar{background:var(--accent-dim);color:var(--accent)}
+  .message.ai .avatar{background:rgba(255,255,255,.06);color:var(--text-muted)}
+
+  .bubble{
+    max-width:75%;padding:14px 18px;
+    border-radius:var(--radius);
+    font-size:14.5px;line-height:1.7;
+    position:relative;
+  }
+  .message.user .bubble{
+    background:var(--user-bg);
+    border:1px solid var(--border);
+    border-bottom-right-radius:4px;
+    color:var(--text);
+  }
+  .message.ai .bubble{
+    background:var(--ai-bg);
+    border:1px solid rgba(255,255,255,.04);
+    border-bottom-left-radius:4px;
+    color:var(--text);
+  }
+
+  /* Streaming cursor */
+  .bubble.streaming::after{
+    content:'▍';
+    color:var(--accent);
+    animation:blink .8s step-end infinite;
+    margin-left:1px;
+  }
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+  /* --- Input area --- */
+  .input-area{
+    padding:16px 28px 24px;
+    border-top:1px solid var(--border);
+    background:rgba(12,12,14,.72);
+    backdrop-filter:blur(12px);
+  }
+  .input-wrap{
+    display:flex;align-items:flex-end;gap:10px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:6px 6px 6px 18px;
+    transition:border-color .2s;
+  }
+  .input-wrap:focus-within{border-color:var(--accent)}
+
+  textarea{
+    flex:1;resize:none;
+    background:transparent;border:none;outline:none;
+    color:var(--text);font-family:var(--font-ui);
+    font-size:14.5px;line-height:1.5;
+    padding:8px 0;max-height:120px;
+    scrollbar-width:none;
+  }
+  textarea::-webkit-scrollbar{display:none}
+  textarea::placeholder{color:var(--text-muted)}
+
+  .send-btn{
+    width:40px;height:40px;border-radius:10px;
+    background:var(--accent);border:none;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .2s;flex-shrink:0;
+  }
+  .send-btn:hover{filter:brightness(1.12);transform:scale(1.04)}
+  .send-btn:active{transform:scale(.96)}
+  .send-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+  .send-btn svg{width:18px;height:18px;fill:var(--bg)}
+
+  .hint{
+    text-align:center;margin-top:8px;
+    font-size:11px;color:var(--text-muted);
+    letter-spacing:.04em;
+  }
+
+  /* --- Error toast --- */
+  .toast{
+    position:fixed;top:20px;left:50%;transform:translateX(-50%);
+    background:#3a1c1c;color:#f5a0a0;
+    padding:10px 20px;border-radius:10px;
+    font-size:13px;z-index:100;
+    border:1px solid rgba(245,160,160,.15);
+    animation:toastIn .3s ease;
+  }
+  @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>AI <span>Chat</span></h1>
+    <div class="header-status">
+      <div class="status-dot"></div>
+      <span id="statusText">就绪</span>
+    </div>
+  </header>
+
+  <div class="chat-area" id="chatArea">
+    <div class="empty-state" id="emptyState">
+      <div class="icon">✦</div>
+      <p>开始一段对话</p>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-wrap">
+      <textarea id="msgInput" rows="1" placeholder="输入消息…" autofocus></textarea>
+      <button class="send-btn" id="sendBtn" aria-label="发送">
+        <svg viewBox="0 0 24 24"><path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94l18-8a.75.75 0 000-1.38l-18-8z"/></svg>
+      </button>
+    </div>
+    <div class="hint">Enter 发送 · Shift+Enter 换行</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const chatArea = document.getElementById('chatArea');
+  const emptyState = document.getElementById('emptyState');
+  const msgInput = document.getElementById('msgInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const statusText = document.getElementById('statusText');
+
+  let sessionId = localStorage.getItem('ai_chat_session') || crypto.randomUUID();
+  localStorage.setItem('ai_chat_session', sessionId);
+  let isStreaming = false;
+
+  // Auto-resize textarea
+  msgInput.addEventListener('input', () => {
+    msgInput.style.height = 'auto';
+    msgInput.style.height = Math.min(msgInput.scrollHeight, 120) + 'px';
+  });
+
+  // Send on Enter
+  msgInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  sendBtn.addEventListener('click', sendMessage);
+
+  function addMessage(role, text) {
+    if (emptyState) emptyState.remove();
+    const div = document.createElement('div');
+    div.className = `message ${role}`;
+    const avatarLabel = role === 'user' ? 'U' : 'AI';
+    div.innerHTML = `
+      <div class="avatar">${avatarLabel}</div>
+      <div class="bubble${role === 'ai' ? ' streaming' : ''}">${escapeHtml(text)}</div>
+    `;
+    chatArea.appendChild(div);
+    chatArea.scrollTop = chatArea.scrollHeight;
+    return div.querySelector('.bubble');
+  }
+
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  async function sendMessage() {
+    const text = msgInput.value.trim();
+    if (!text || isStreaming) return;
+
+    isStreaming = true;
+    sendBtn.disabled = true;
+    statusText.textContent = '思考中…';
+    msgInput.value = '';
+    msgInput.style.height = 'auto';
+
+    addMessage('user', text);
+    const aiBubble = addMessage('ai', '');
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, session_id: sessionId }),
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const payload = JSON.parse(line);
+            if (payload.type === 'content' && payload.content) {
+              aiBubble.textContent += payload.content;
+              chatArea.scrollTop = chatArea.scrollHeight;
+            }
+            if (payload.session_id) {
+              sessionId = payload.session_id;
+              localStorage.setItem('ai_chat_session', sessionId);
+            }
+            if (payload.type === 'error') {
+              throw new Error(payload.error);
+            }
+          } catch (e) {
+            if (e.message && !e.message.includes('JSON')) throw e;
+          }
+        }
+      }
+
+      aiBubble.classList.remove('streaming');
+      statusText.textContent = '就绪';
+    } catch (err) {
+      aiBubble.textContent = '出错了: ' + err.message;
+      aiBubble.classList.remove('streaming');
+      aiBubble.style.color = '#f5a0a0';
+      statusText.textContent = '错误';
+      showToast(err.message);
+    } finally {
+      isStreaming = false;
+      sendBtn.disabled = false;
+      msgInput.focus();
+    }
+  }
+
+  function showToast(msg) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+  }
+})();
+</script>
+</body>
+</html>
