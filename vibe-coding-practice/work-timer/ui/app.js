@@ -84,27 +84,32 @@
 
     // ---- 按钮事件 ----
     function callApi(method) {
-        if (window.pywebview && window.pywebview.api) {
-            return window.pywebview.api[method]();
+        if (!window.pywebview || !window.pywebview.api) {
+            console.warn("pywebview api 不可用:", method);
+            return;
         }
-        // 浏览器直接打开时的退化（用于纯前端调试）
-        console.warn("pywebview api 不可用:", method);
+        try {
+            return window.pywebview.api[method]();
+        } catch (e) {
+            console.error("调用", method, "失败:", e);
+        }
     }
 
-    btnToggle.addEventListener("click", () => callApi("toggleStartPause"));
-    btnReset.addEventListener("click",  () => callApi("resetCurrent"));
-    btnSkip.addEventListener("click",   () => callApi("skipPhase"));
+    // 注意：pywebview 按 Python 方法原名（snake_case）暴露，不要写 camelCase
+    btnToggle.addEventListener("click", () => callApi("toggle_start_pause"));
+    btnReset.addEventListener("click",  () => callApi("reset_current"));
+    btnSkip.addEventListener("click",   () => callApi("skip_phase"));
 
     // ---- 初始拉取一次状态 ----
     document.addEventListener("pywebviewready", () => {
         if (window.pywebview && window.pywebview.api) {
-            window.pywebview.api.getState().then(render);
+            window.pywebview.api.get_state().then(render);
         }
     });
     // 兜底：DOMContentLoaded 时尝试拉取
     document.addEventListener("DOMContentLoaded", () => {
         if (window.pywebview && window.pywebview.api) {
-            window.pywebview.api.getState().then(render);
+            window.pywebview.api.get_state().then(render);
         }
     });
 })();
