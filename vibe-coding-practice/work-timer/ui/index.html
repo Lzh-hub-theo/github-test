@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+    <title>🍅 番茄钟</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body data-phase="FOCUS">
+    <div class="card">
+        <header class="title">
+            <span class="title-icon">🍅</span>
+            <span class="title-text">番茄钟</span>
+        </header>
+
+        <section class="timer">
+            <svg class="progress-ring" viewBox="0 0 200 200" aria-hidden="true">
+                <circle class="ring-track" cx="100" cy="100" r="90"/>
+                <circle class="ring-progress" cx="100" cy="100" r="90"
+                        stroke-dasharray="565.48" stroke-dashoffset="0"/>
+            </svg>
+            <div class="timer-display" id="timerDisplay">25:00</div>
+            <div class="phase-label" id="phaseLabel">专注</div>
+        </section>
+
+        <section class="controls">
+            <button id="btnToggle" class="btn btn-primary">开始</button>
+            <div class="btn-row">
+                <button id="btnReset" class="btn btn-secondary">重置</button>
+                <button id="btnSkip" class="btn btn-secondary">跳过</button>
+            </div>
+        </section>
+
+        <section class="phase-dots" id="phaseDots" aria-label="当前轮次">
+            <span class="dot filled"></span>
+            <span class="dot filled"></span>
+            <span class="dot filled"></span>
+            <span class="dot"></span>
+        </section>
+
+        <footer class="stats">
+            今日完成 <span id="todayCount">0</span> 个番茄 🍅
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,227 @@
+/* ============================================================
+   番茄钟主窗口样式
+   玻璃拟态 + 阶段色调（专注红 / 短休橙 / 长休蓝）
+   ============================================================ */
+
+:root {
+    --color-focus: #E94B3C;
+    --color-short: #F5A623;
+    --color-long:  #5BA8E5;
+
+    --color-text:      #2C2C2C;
+    --color-text-sub:  #7A7A7A;
+    --color-card:      rgba(255, 255, 255, 0.65);
+    --color-card-edge: rgba(255, 255, 255, 0.4);
+    --shadow-card:     0 8px 32px rgba(0, 0, 0, 0.12);
+
+    --accent: var(--color-focus);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Microsoft YaHei UI', 'Segoe UI', system-ui, sans-serif;
+    color: var(--color-text);
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+body {
+    /* 阶段色背景渐变（通过 [data-phase] 切换） */
+    background: linear-gradient(135deg,
+        color-mix(in srgb, var(--accent) 30%, #ffffff) 0%,
+        color-mix(in srgb, var(--accent) 10%, #f5f5f5) 100%);
+    transition: background 0.6s ease;
+}
+
+body[data-phase="FOCUS"]       { --accent: var(--color-focus); }
+body[data-phase="SHORT_BREAK"] { --accent: var(--color-short); }
+body[data-phase="LONG_BREAK"]  { --accent: var(--color-long); }
+
+.card {
+    width: 100%;
+    height: 100%;
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    background: var(--color-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--color-card-edge);
+    box-shadow: var(--shadow-card);
+}
+
+/* ---------- 标题 ---------- */
+.title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text);
+    letter-spacing: 1px;
+}
+
+.title-icon { font-size: 18px; }
+
+/* ---------- 倒计时 ---------- */
+.timer {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: 4px;
+}
+
+.progress-ring {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.ring-track {
+    fill: none;
+    stroke: rgba(0, 0, 0, 0.08);
+    stroke-width: 6;
+}
+
+.ring-progress {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s linear, stroke 0.6s ease;
+}
+
+.timer-display {
+    font-size: 56px;
+    font-weight: 200;
+    letter-spacing: 2px;
+    color: var(--color-text);
+    z-index: 1;
+    transition: color 0.6s ease;
+}
+
+body[data-phase="FOCUS"]       .timer-display { color: var(--color-focus); }
+body[data-phase="SHORT_BREAK"] .timer-display { color: var(--color-short); }
+body[data-phase="LONG_BREAK"]  .timer-display { color: var(--color-long);  }
+
+.timer-display.ending {
+    animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1);   opacity: 1;   }
+    50%      { transform: scale(1.08); opacity: 0.85; }
+}
+
+.phase-label {
+    margin-top: 4px;
+    font-size: 13px;
+    color: var(--color-text-sub);
+    letter-spacing: 2px;
+    z-index: 1;
+}
+
+/* ---------- 按钮 ---------- */
+.controls {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.btn {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+    width: 200px;
+    height: 48px;
+    border-radius: 24px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: 4px;
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.btn-primary:hover {
+    background: color-mix(in srgb, var(--accent) 88%, #000);
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+.btn-row {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-secondary {
+    width: 94px;
+    height: 36px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.6);
+    color: var(--color-text);
+    font-size: 13px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+/* ---------- 阶段圆点 ---------- */
+.phase-dots {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.12);
+    transition: background 0.4s ease;
+}
+
+.dot.filled {
+    background: var(--accent);
+}
+
+/* ---------- 底部统计 ---------- */
+.stats {
+    margin-top: auto;
+    font-size: 12px;
+    color: var(--color-text-sub);
+    letter-spacing: 1px;
+    padding-bottom: 4px;
+}
+
+.stats #todayCount {
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0 2px;
+}
