@@ -1,0 +1,2 @@
+# 排除 Python 字节码缓存
+timer/__pycache__/
